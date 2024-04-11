@@ -1,4 +1,4 @@
-# iMotions_polarH10_connect
+# PolarH10 Middleware for iMotions
 
 Welcome to iMotions_polarH10_connect, a Python middleware designed to seamlessly integrate the Polar H10 Heart rate sensor with iMotions via TCP protocol.
 
