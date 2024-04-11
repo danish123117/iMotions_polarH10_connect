@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<EventSource Version="1" Id="Heart" Name="HeartRate">
+	<Sample Id="HeartRate" Name="Heart">
+    	<Field Id="bpm" Range="Variable" Min="40" Max="200"/>
+    	<Field Id="R_R_int" Range="Variable" Min="200" Max="1200"/>
+	</Sample>
+</EventSource>
