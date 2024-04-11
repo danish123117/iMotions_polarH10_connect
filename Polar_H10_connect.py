@@ -1,5 +1,4 @@
 import asyncio
-import time
 import socket
 import struct
 from bleak import BleakScanner, BleakClient
