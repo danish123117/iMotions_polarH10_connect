@@ -5,11 +5,16 @@ Welcome to iMotions_polarH10_connect, a Python middleware designed to seamlessly
 To get started, follow these simple steps:
 
 1. **Clone the Repository:** Begin by cloning this repository to your local machine.
-      $ git clone https://github.com/danish123117/iMotions_polarH10_connect.git
+```console
+git clone https://github.com/danish123117/iMotions_polarH10_connect.git
+
+```  
 
 2. **Install necessary libraries:** Navigate to the cloned repository and install the required libraries.
+```console  
       $ cd "iMotions_polarH10_connect"
       $ pip install -r requirements.txt
+```
   
 3. **Configure iMotions:**
    - Open the iMotions app and navigate to Preferences > Sensor Settings > API.
@@ -19,7 +24,9 @@ To get started, follow these simple steps:
 
 4. **Run the Python Code:**
    - Now, execute the Python code provided.
-   $ python "Polar_H10_connect.py"
+```console
+python "Polar_H10_connect.py"
+```
    - Choose the appropriate sensor from the list of available sensors.
 
 5. **Enjoy Seamless Integration:**
