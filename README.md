@@ -12,8 +12,8 @@ git clone https://github.com/danish123117/iMotions_polarH10_connect.git
 
 2. **Install necessary libraries:** Navigate to the cloned repository and install the required libraries.
 ```console  
-      $ cd "iMotions_polarH10_connect"
-      $ pip install -r requirements.txt
+cd "iMotions_polarH10_connect"
+pip install -r requirements.txt
 ```
   
 3. **Configure iMotions:**
