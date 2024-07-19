@@ -41,6 +41,23 @@ async def notification_handler(sender, data):
             send_data_over_tcp(to_imotions)
             print(f"Heart Rate: {heart_rate}, RR: {rr}")
 
+async def handle_disconnect(address):
+    print("Device disconnected, attempting to reconnect...")
+    while True:
+        try:
+            client = await connect_to_ble(address)
+            print("Reconnected to the device")
+            await client.start_notify('00002a37-0000-1000-8000-00805f9b34fb', notification_handler)
+            client.set_disconnected_callback(lambda _: asyncio.create_task(handle_disconnect(address)))
+            return
+        except Exception as e:
+            print(f"Reconnection failed: {e}, retrying in 5 seconds...")
+            await asyncio.sleep(5)
+
+def on_disconnect(client):
+    loop = asyncio.get_event_loop()
+    loop.create_task(handle_disconnect(client.address))
+
 async def main():
     connection = False
     n = 10
@@ -57,8 +74,12 @@ async def main():
         polar_h10_devices = [device for device in devices if device.name and device.name.startswith('Polar H10')]
         address = polar_h10_devices[index].address
         client = await connect_to_ble(address)
+        
+        client.set_disconnected_callback(on_disconnect)
+
         await client.start_notify('00002a37-0000-1000-8000-00805f9b34fb', notification_handler)
         print(f"Connected to BLE device name:{polar_h10_devices[index].name}  MAC address: {polar_h10_devices[index].address}")
+    
     h = input("Press any key to start data transmission...")
     while h:
         await asyncio.sleep(1)  # Keep the event loop running
@@ -66,6 +87,5 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-
 
 
