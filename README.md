@@ -18,7 +18,7 @@ pip install -r requirements.txt
   
 3. **Configure iMotions:**
    - Open the iMotions app and navigate to Preferences > Sensor Settings > API.
-   - Fill in the required details according to the provided [screenshot](https://github.com/danish123117/iMotions_polarH10_connect/blob/main/iMotions%20API%20sanpshot.png).
+   - Fill in the required details according to the provided [screenshot]("iMotions API sanpshot.png").
    - In Event Sources click 'Add'.
    - Select the `config.xml` file included in this repository and confirm by clicking OK.
 
