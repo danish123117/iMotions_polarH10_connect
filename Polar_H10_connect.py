@@ -1,7 +1,18 @@
 import asyncio
 import socket
 import struct
+import time
 from bleak import BleakScanner, BleakClient
+from openpyxl import Workbook
+
+# Global variables for Excel writing
+workbook = None
+worksheet = None
+save_interval = 10  # Save every 10 seconds
+last_save_time = time.time()
+excel_filename = None
+tcp_enabled = False
+excel_enabled = False
 
 async def connect_to_ble(address):
     client = BleakClient(address)
@@ -17,29 +28,39 @@ def send_data_over_tcp(data):
         s.sendall(message)
 
 async def notification_handler(sender, data):
+    global last_save_time
     flag = int.from_bytes(data[0:1], byteorder='little')
     heart_rate_value_format = (flag & 1)
     
     start_str = 'E;1;Heart;1;;;;HeartRate;'
     end_str = '\r\n'
+    timestamp = time.strftime('%Y-%m-%d %H:%M:%S')
     
     if heart_rate_value_format == 0:
         heart_rate = int.from_bytes(data[1:2], byteorder='little')
-        if len(data) == 2:
-            rr = 0
-            to_imotions = f"{start_str}{heart_rate};{rr}{end_str}"
-            send_data_over_tcp(to_imotions)
-            print(f"Heart Rate: {heart_rate}, RR: {rr}")
+        rr = 0
         if len(data) > 2:
             rr = struct.unpack('<H', data[2:4])[0] / 1024 * 1000
-            to_imotions = f"{start_str}{heart_rate};{rr}{end_str}"
-            send_data_over_tcp(to_imotions)
-            print(f"Heart Rate: {heart_rate}, RR: {rr}")
         if len(data) > 4:
             rr = struct.unpack('<H', data[4:6])[0] / 1024 * 1000
-            to_imotions = f"{start_str}{heart_rate};{rr}{end_str}"
+        
+        # Construct the message to send over TCP
+        to_imotions = f"{start_str}{heart_rate};{rr}{end_str}"
+        
+        # Send data over TCP if enabled
+        if tcp_enabled:
             send_data_over_tcp(to_imotions)
-            print(f"Heart Rate: {heart_rate}, RR: {rr}")
+            print(f"Sent over TCP - Heart Rate: {heart_rate}, RR: {rr}, Timestamp: {timestamp}")
+        
+        # Write data to Excel if enabled
+        if excel_enabled:
+            worksheet.append([timestamp, heart_rate, rr])
+            print(f"Stored in Excel - Heart Rate: {heart_rate}, RR: {rr}, Timestamp: {timestamp}")
+            
+            # Save Excel file periodically
+            if time.time() - last_save_time > save_interval:
+                workbook.save(excel_filename)
+                last_save_time = time.time()
 
 async def handle_disconnect(address):
     print("Device disconnected, attempting to reconnect...")
@@ -59,19 +80,54 @@ def on_disconnect(client):
     loop.create_task(handle_disconnect(client.address))
 
 async def main():
+    global workbook, worksheet, excel_filename, tcp_enabled, excel_enabled
+    
+    # Ask user which functionalities to enable
+    print("Choose an option:")
+    print("1. Only TCP")
+    print("2. TCP and Excel Storage")
+    print("3. Only Excel Storage")
+    choice = int(input("Enter your choice (1/2/3): "))
+
+    if choice == 1:
+        tcp_enabled = True
+        print("TCP mode selected.")
+    elif choice == 2:
+        tcp_enabled = True
+        excel_enabled = True
+        excel_filename = input("Enter the name for the Excel file (e.g., 'heart_data.xlsx'): ")
+        # Check and append .xlsx if not present
+        if not excel_filename.endswith('.xlsx'):
+            excel_filename += '.xlsx'
+        print(f"TCP and Excel Storage mode selected. Excel file: {excel_filename}")
+    elif choice == 3:
+        excel_enabled = True
+        excel_filename = input("Enter the name for the Excel file (e.g., 'heart_data.xlsx'): ")
+        # Check and append .xlsx if not present
+        if not excel_filename.endswith('.xlsx'):
+            excel_filename += '.xlsx'
+        print(f"Excel Storage mode selected. Excel file: {excel_filename}")
+
+    # Initialize Excel workbook and worksheet if Excel storage is enabled
+    if excel_enabled:
+        workbook = Workbook()
+        worksheet = workbook.active
+        worksheet.title = "Heart Rate Data"
+        worksheet.append(["Timestamp", "Heart Rate", "RR Interval"])
+    
+    # Discover BLE devices
     connection = False
-    n = 10
     timeout = 5
     devices = await BleakScanner.discover(timeout)
     if devices:
         print("Found the following devices:")
         polar_h10_counter = 0
         for device in devices:
-            if device.name and device.name.startswith('Polar H10'):
+            if device.name and device.name.startswith('Polar H10'):#Polar H10
                 polar_h10_counter += 1
                 print(f"{polar_h10_counter}. Name: {device.name}, MAC Address: {device.address}")     
         index = int(input("Select a device: ")) - 1
-        polar_h10_devices = [device for device in devices if device.name and device.name.startswith('Polar H10')]
+        polar_h10_devices = [device for device in devices if device.name and device.name.startswith('Polar H10')]#Polar H10
         address = polar_h10_devices[index].address
         client = await connect_to_ble(address)
         
@@ -87,5 +143,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-
-
