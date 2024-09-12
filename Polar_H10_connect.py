@@ -31,51 +31,28 @@ async def notification_handler(sender, data):
     global last_save_time
     flag = int.from_bytes(data[0:1], byteorder='little')
     heart_rate_value_format = (flag & 1)
-    
+    heart_rate = int.from_bytes(data[1:2], byteorder='little')
+    rr_intervals = []
+    if len(data) > 2:
+        rr_intervals = [struct.unpack('<H', data[i:i+2])[0] / 1024 * 1000 for i in range(2, len(data), 2)]
+    timestamp = time.strftime('%Y-%m-%d %H:%M:%S')
     start_str = 'E;1;Heart;1;;;;HeartRate;'
     end_str = '\r\n'
-    timestamp = time.strftime('%Y-%m-%d %H:%M:%S')
-    
-    if heart_rate_value_format == 0:
-        heart_rate = int.from_bytes(data[1:2], byteorder='little')     
-        if len(data) ==2:
-            rr = 0
-            if tcp_enabled:
-                try:
-                    to_imotions = f"{start_str}{heart_rate};{rr}{end_str}"
-                    send_data_over_tcp(to_imotions)
-                except Exception as e:
-                    print(f"TCP Error: {e}")
-            if excel_enabled:
-                worksheet.append([timestamp, heart_rate, rr])
-            print(f"Heart Rate: {heart_rate}, RR: {rr}, Timestamp: {timestamp}")
-        if len(data) > 2:
-            rr = struct.unpack('<H', data[2:4])[0] / 1024 * 1000
-            if tcp_enabled:
-                try:
-                    to_imotions = f"{start_str}{heart_rate};{rr}{end_str}"
-                    send_data_over_tcp(to_imotions)
-                except Exception as e:
-                    print(f"TCP Error: {e}")
-            if excel_enabled:
-                worksheet.append([timestamp, heart_rate, rr])   
-            print(f"Heart Rate: {heart_rate}, RR: {rr}, Timestamp: {timestamp}")         
-        if len(data) > 4:
-            rr = struct.unpack('<H', data[4:6])[0] / 1024 * 1000
-            if tcp_enabled:
-                try:
-                    to_imotions = f"{start_str}{heart_rate};{rr}{end_str}"
-                    send_data_over_tcp(to_imotions)
-                except Exception as e:
-                    print(f"TCP Error: {e}")
-            if excel_enabled:
-                worksheet.append([timestamp, heart_rate, rr]) 
-            print(f"Heart Rate: {heart_rate}, RR: {rr}, Timestamp: {timestamp}")           
-        # Save Excel file periodically      
+    for rr in rr_intervals or [0]:  # Use [0] if no RR interval is found
+        if tcp_enabled:
+            try:
+                to_imotions = f"{start_str}{heart_rate};{rr}{end_str}"
+                send_data_over_tcp(to_imotions)
+            except Exception as e:
+                print(f"TCP Error: {e}")
+
         if excel_enabled:
-            if time.time() - last_save_time > save_interval:
-                workbook.save(excel_filename)
-                last_save_time = time.time()
+            worksheet.append([timestamp, heart_rate, rr])
+
+        print(f"Heart Rate: {heart_rate}, RR: {rr}, Timestamp: {timestamp}")
+    if excel_enabled and time.time() - last_save_time > save_interval:
+        workbook.save(excel_filename)
+        last_save_time = time.time()
 
 async def handle_disconnect(address):
     print("Device disconnected, attempting to reconnect...")
@@ -96,7 +73,27 @@ def on_disconnect(client):
 
 async def main():
     global workbook, worksheet, excel_filename, tcp_enabled, excel_enabled
-    
+    # Discover BLE devices
+    connection = False
+    timeout = 5
+    devices = await BleakScanner.discover(timeout)
+    if devices:
+        print("Found the following devices:")
+        polar_h10_counter = 0
+        for device in devices:
+            if device.name and device.name.startswith('Polar H10'):#Polar H10
+                polar_h10_counter += 1
+                print(f"{polar_h10_counter}. Name: {device.name}, MAC Address: {device.address}")     
+        index = int(input("Select a device: ")) - 1
+        polar_h10_devices = [device for device in devices if device.name and device.name.startswith('Polar H10')]#Polar H10
+        address = polar_h10_devices[index].address
+        client = await connect_to_ble(address)
+        
+        client.set_disconnected_callback(on_disconnect)
+
+        await client.start_notify('00002a37-0000-1000-8000-00805f9b34fb', notification_handler)
+        print(f"Connected to BLE device name:{polar_h10_devices[index].name}  MAC address: {polar_h10_devices[index].address}")   
+   
     # Ask user which functionalities to enable
     print("Choose an option:")
     print("1. Only TCP")
@@ -130,26 +127,7 @@ async def main():
         worksheet.title = "Heart Rate Data"
         worksheet.append(["Timestamp", "Heart Rate", "RR Interval"])
     
-    # Discover BLE devices
-    connection = False
-    timeout = 5
-    devices = await BleakScanner.discover(timeout)
-    if devices:
-        print("Found the following devices:")
-        polar_h10_counter = 0
-        for device in devices:
-            if device.name and device.name.startswith('Polar H10'):#Polar H10
-                polar_h10_counter += 1
-                print(f"{polar_h10_counter}. Name: {device.name}, MAC Address: {device.address}")     
-        index = int(input("Select a device: ")) - 1
-        polar_h10_devices = [device for device in devices if device.name and device.name.startswith('Polar H10')]#Polar H10
-        address = polar_h10_devices[index].address
-        client = await connect_to_ble(address)
-        
-        client.set_disconnected_callback(on_disconnect)
 
-        await client.start_notify('00002a37-0000-1000-8000-00805f9b34fb', notification_handler)
-        print(f"Connected to BLE device name:{polar_h10_devices[index].name}  MAC address: {polar_h10_devices[index].address}")
     
     h = input("Press any key and hit enter to start data transmission...")
     while h:
