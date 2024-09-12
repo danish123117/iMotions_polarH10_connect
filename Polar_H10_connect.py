@@ -37,27 +37,42 @@ async def notification_handler(sender, data):
     timestamp = time.strftime('%Y-%m-%d %H:%M:%S')
     
     if heart_rate_value_format == 0:
-        heart_rate = int.from_bytes(data[1:2], byteorder='little')
-        rr = 0
+        heart_rate = int.from_bytes(data[1:2], byteorder='little')     
+        if len(data) ==2:
+            rr = 0
+            if tcp_enabled:
+                try:
+                    to_imotions = f"{start_str}{heart_rate};{rr}{end_str}"
+                    send_data_over_tcp(to_imotions)
+                except Exception as e:
+                    print(f"TCP Error: {e}")
+            if excel_enabled:
+                worksheet.append([timestamp, heart_rate, rr])
+            print(f"Heart Rate: {heart_rate}, RR: {rr}, Timestamp: {timestamp}")
         if len(data) > 2:
             rr = struct.unpack('<H', data[2:4])[0] / 1024 * 1000
+            if tcp_enabled:
+                try:
+                    to_imotions = f"{start_str}{heart_rate};{rr}{end_str}"
+                    send_data_over_tcp(to_imotions)
+                except Exception as e:
+                    print(f"TCP Error: {e}")
+            if excel_enabled:
+                worksheet.append([timestamp, heart_rate, rr])   
+            print(f"Heart Rate: {heart_rate}, RR: {rr}, Timestamp: {timestamp}")         
         if len(data) > 4:
             rr = struct.unpack('<H', data[4:6])[0] / 1024 * 1000
-        
-        # Construct the message to send over TCP
-        to_imotions = f"{start_str}{heart_rate};{rr}{end_str}"
-        
-        # Send data over TCP if enabled
-        if tcp_enabled:
-            send_data_over_tcp(to_imotions)
-            print(f"Sent over TCP - Heart Rate: {heart_rate}, RR: {rr}, Timestamp: {timestamp}")
-        
-        # Write data to Excel if enabled
+            if tcp_enabled:
+                try:
+                    to_imotions = f"{start_str}{heart_rate};{rr}{end_str}"
+                    send_data_over_tcp(to_imotions)
+                except Exception as e:
+                    print(f"TCP Error: {e}")
+            if excel_enabled:
+                worksheet.append([timestamp, heart_rate, rr]) 
+            print(f"Heart Rate: {heart_rate}, RR: {rr}, Timestamp: {timestamp}")           
+        # Save Excel file periodically      
         if excel_enabled:
-            worksheet.append([timestamp, heart_rate, rr])
-            print(f"Stored in Excel - Heart Rate: {heart_rate}, RR: {rr}, Timestamp: {timestamp}")
-            
-            # Save Excel file periodically
             if time.time() - last_save_time > save_interval:
                 workbook.save(excel_filename)
                 last_save_time = time.time()
@@ -136,7 +151,7 @@ async def main():
         await client.start_notify('00002a37-0000-1000-8000-00805f9b34fb', notification_handler)
         print(f"Connected to BLE device name:{polar_h10_devices[index].name}  MAC address: {polar_h10_devices[index].address}")
     
-    h = input("Press any key to start data transmission...")
+    h = input("Press any key and hit enter to start data transmission...")
     while h:
         await asyncio.sleep(1)  # Keep the event loop running
     await client.stop_notify('00002a37-0000-1000-8000-00805f9b34fb')
