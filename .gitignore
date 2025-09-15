@@ -3,3 +3,15 @@ __pycache__
 *$py.class
 .venv
 .env
+|*.xlsx
+.venv/
+.env/
+.idea/
+.vscode/
+.DS_Store
+logs/
+*.log
+*.pot
+*.mo
+.git
+__pycache__/

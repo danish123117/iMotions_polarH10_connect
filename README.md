@@ -9,13 +9,17 @@ To get started, follow these simple steps:
 git clone https://github.com/danish123117/iMotions_polarH10_connect.git
 
 ```  
+* If using thonny, simply download the python file named Polar_H10_connect.py
+ also download the file config.xml
 
 2. **Install necessary libraries:** Navigate to the cloned repository and install the required libraries.
 ```console  
 cd "iMotions_polarH10_connect"
 pip install -r requirements.txt
 ```
-  
+* If using thonny go to tools>manage packages> search bleak and install version 0.22.3
+ also search and install openpyxl
+
 3. **Configure iMotions:**
    - Open the iMotions app and navigate to Preferences > Sensor Settings > API.
    - Fill in the required details according to the provided ![screenshot](iMotions_API_sanpshot.png).
@@ -31,6 +35,8 @@ python "Polar_H10_connect.py"
 
 5. **Enjoy Seamless Integration:**
    - With the setup complete, you're ready to enjoy the seamless connection between the Polar H10 Heart rate sensor and iMotions.
+
+
 
 Feel free to reach out if you encounter any issues or have any questions. Happy analyzing!
 
